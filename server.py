@@ -5,7 +5,7 @@ import time
 import datetime
 import echoprint
 from bottle import route, run, template, static_file
-from listen import record
+from listen import *
 # run with simplehttpd server
 
 SYSTEM_PATH = os.path.abspath('/'.join(__file__.split('/')[:-1]))
@@ -19,21 +19,17 @@ def server_static(filename):
 
 @route('/')
 def index():
-    return template('index', **tpl_p)
+    return template('index')
 
 @route('/identify/')
 def identify():
-    samples = record(TMP_WAV)
-    d = echoprint.codegen(samples)
-    d['api_key'] = ECHONEST_API_KEY
-    res = requests.get('http://developer.echonest.com/api/v4/song/identify', d).content
-    return res
-    # start_time = time.time()
-    # tpl_p = {}
-    # tpl_p['time'] = start_time
-    # tpl_p['song'] = ''
-    # tpl_p['artist'] = ''
-    # tpl_p['album'] = ''
-    # return tpl_p
+    record(TMP_WAV)
+    d = echoprint.codegen(get_samples_from_file(TMP_WAV))
+    endpoint = "http://developer.echonest.com/api/v4/song/identify"
+    url = "%s?api_key=%s&code=%s" % (endpoint, ECHONEST_API_KEY, d['code'])
+    r = requests.get(url)
+    res = simplejson.loads(r.text)
+    print res['response']
+    return res['response']
 
 run(host='localhost', port=8080)
